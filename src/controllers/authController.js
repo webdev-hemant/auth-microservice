@@ -9,7 +9,18 @@ exports.getAllUsers = async (req, res) => {
     if (req?.user?.email !== ADMIN_EMAIL) {
       return res.status(200).json({ message: "who the fuck are you?" });
     }
-    const users = await User.findAll();
+    const users = await User.findAll({
+      attributes: [
+        "id",
+        "username",
+        "email",
+        "firstName",
+        "lastName",
+        "birthdate",
+        "createdAt",
+        "updatedAt",
+      ],
+    });
     res.status(200).json({ total: users.length, users });
   } catch (error) {
     console.error(error);
