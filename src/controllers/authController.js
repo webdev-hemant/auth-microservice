@@ -71,7 +71,7 @@ exports.login = async (req, res) => {
     if (!isValid) return res.status(401).json({ message: "Invalid password" });
 
     const token = jwt.sign({ id: user.id }, JWT_SECRET, {
-      expiresIn: "1h",
+      expiresIn: "24h",
     });
     res.json({
       message: "Logged in",
