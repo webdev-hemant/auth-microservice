@@ -4,15 +4,18 @@ const User = require("../models/User");
 const RegisterUsingMobileNumber = require("../models/mobileLoginModel");
 
 const isAuthenticated = async (req, res, next) => {
-  const token = req.headers["authorization"]?.split(" ")[1];
-  if (!token) return res.status(403).json({ message: "No token provided" });
+  try {
+    const token = req.headers["authorization"]?.split(" ")[1];
+    if (!token) return res.status(403).json({ message: "No token provided" });
 
-  jwt.verify(token, JWT_SECRET, async (err, decoded) => {
-    if (err) return res.status(401).json({ message: "Unauthorized" });
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const userId = decoded.id;
 
-    const user = await User.findOne({
-      where: { id: decoded.id },
-    });
+    // Check both models in parallel
+    const [user, mobileUser] = await Promise.all([
+      User.findOne({ where: { id: userId } }),
+      RegisterUsingMobileNumber.findOne({ where: { id: userId } }),
+    ]);
 
     if (user) {
       req.user = {
@@ -26,11 +29,6 @@ const isAuthenticated = async (req, res, next) => {
       };
       return next();
     }
-
-    // If not found in User model, check in mobile number model
-    const mobileUser = await RegisterUsingMobileNumber.findOne({
-      where: { id: decoded.id },
-    });
 
     if (mobileUser) {
       req.user = {
@@ -46,7 +44,10 @@ const isAuthenticated = async (req, res, next) => {
     }
 
     return res.status(404).json({ message: "User not found" });
-  });
+  } catch (err) {
+    console.error("Authentication error:", err);
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 };
 
 module.exports = { isAuthenticated };
